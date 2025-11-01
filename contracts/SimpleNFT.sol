@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 // Compatible with OpenZeppelin Contracts ^5.4.0
-pragma solidity ^0.8.27;
+pragma solidity ^0.8.30;
 
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {ERC721Burnable} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
@@ -9,13 +9,19 @@ import {ERC721Pausable} from "@openzeppelin/contracts/token/ERC721/extensions/ER
 import {ERC721URIStorage} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
-contract Garden is ERC721, ERC721Enumerable, ERC721URIStorage, ERC721Pausable, Ownable, ERC721Burnable {
+contract GardenNFT is ERC721, ERC721Enumerable, ERC721URIStorage, ERC721Pausable, Ownable, ERC721Burnable {
     uint256 private _nextTokenId;
+    string public basePinataGateway = "https://gateway.pinata.cloud/ipfs/";
 
     constructor(address initialOwner)
-        ERC721("Garden", "GDN")
+        ERC721("GardenNFT", "GDN")
         Ownable(initialOwner)
     {}
+
+    // --- Owner Controls ---
+    function setBasePinataGateway(string memory newBase) public onlyOwner {
+        basePinataGateway = newBase;
+    }
 
     function pause() public onlyOwner {
         _pause();
@@ -25,6 +31,7 @@ contract Garden is ERC721, ERC721Enumerable, ERC721URIStorage, ERC721Pausable, O
         _unpause();
     }
 
+    // --- Minting ---
     function safeMint(address to, string memory uri)
         public
         onlyOwner
@@ -36,8 +43,7 @@ contract Garden is ERC721, ERC721Enumerable, ERC721URIStorage, ERC721Pausable, O
         return tokenId;
     }
 
-    // The following functions are overrides required by Solidity.
-
+    // --- Overrides ---
     function _update(address to, uint256 tokenId, address auth)
         internal
         override(ERC721, ERC721Enumerable, ERC721Pausable)
@@ -59,7 +65,9 @@ contract Garden is ERC721, ERC721Enumerable, ERC721URIStorage, ERC721Pausable, O
         override(ERC721, ERC721URIStorage)
         returns (string memory)
     {
-        return super.tokenURI(tokenId);
+        require(_ownerOf(tokenId) != address(0), "URI query for nonexistent token");
+        string memory storedURI = super.tokenURI(tokenId);
+        return string(abi.encodePacked(basePinataGateway, storedURI));
     }
 
     function supportsInterface(bytes4 interfaceId)
